@@ -20,7 +20,21 @@ import curses
 DEFAULT_FOREGROUND = curses.COLOR_WHITE
 DEFAULT_BACKGROUND = curses.COLOR_BLACK
 COLOR_PAIRS = {10: 0}
+COLORS = dict()
+NEXT_COLOR_INDEX = 0
+PREDEFINED_COLOR_COUNT = 24
 
+def get_color_id(r, g, b):
+  global NEXT_COLOR_INDEX
+  if (r, g, b) not in COLORS.keys():
+    if len(COLORS) + PREDEFINED_COLOR_COUNT >= curses.COLORS:
+      return default
+    colid = NEXT_COLOR_INDEX % (curses.COLORS - PREDEFINED_COLOR_COUNT) + PREDEFINED_COLOR_COUNT
+    (rc, gc, bc) = map(lambda c: int(1000 * (float(c) / 256.0)), (r, g, b))
+    curses.init_color(colid, rc, gc, bc)
+    COLORS[(r, g, b)] = colid
+    NEXT_COLOR_INDEX += 1
+  return COLORS[(r, g, b)]
 
 def get_color(fg, bg):
     """Returns the curses color pair for the given fg/bg combination."""

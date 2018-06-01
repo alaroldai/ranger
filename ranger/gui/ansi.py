@@ -25,6 +25,81 @@ def split_ansi_from_text(ansi_text):
 # For information on the ANSI codes see
 # githttp://en.wikipedia.org/wiki/ANSI_escape_code
 
+def parse_attr(code, fg, bg, attr):
+  if code == 0:                        # reset colors and attributes
+      fg, bg, attr = -1, -1, 0
+
+  elif code == 1:                      # enable attribute
+      attr |= color.bold
+  elif code == 4:
+      attr |= color.underline
+  elif code == 5:
+      attr |= color.blink
+  elif code == 7:
+      attr |= color.reverse
+  elif code == 8:
+      attr |= color.invisible
+
+  elif code == 22:                     # disable attribute
+      attr &= not color.bold
+  elif code == 24:
+      attr &= not color.underline
+  elif code == 25:
+      attr &= not color.blink
+  elif code == 27:
+      attr &= not color.reverse
+  elif code == 28:
+      attr &= not color.invisible
+
+  elif code >= 30 and code <= 37:         # 8 ansi foreground and background colors
+      fg = code - 30
+  elif code == 39:
+      fg = -1
+  elif code >= 40 and code <= 47:
+      bg = code - 40
+  elif code == 49:
+      bg = -1
+
+  # 8 aixterm high intensity colors (light but not bold)
+  elif code >= 90 and code <= 97:
+      fg = code - 90 + 8
+  elif code == 99:
+      fg = -1
+  elif code >= 100 and code <= 107:
+      bg = code - 100 + 8
+  elif code == 109:
+      bg = -1
+  return (fg, bg, attr)
+
+
+def parse_indexed_color(code):
+  return code
+
+
+def parse_rgb(code):
+  (r, g, b) = code
+  return color.get_color_id(r, g, b)
+
+
+def parse_color(code):
+  if code[0] == 5:
+    return parse_indexed_color(code[0])
+  elif code[0] == 2:
+    return parse_rgb(code[1:])
+  else:
+    print('unknown color colde {}'.format(code))
+    return -1
+
+
+def parse_ansi_code(code, fg, bg, attr):
+  if code[0] == 38:
+    fg = parse_color(code[1:])
+  elif code[0] == 48:
+    bg = parse_color(code[1:])
+  else:
+    (fg, bg, attr) = parse_attr(code[0], fg, bg, attr)
+
+  return (fg, bg, attr)
 
 def text_with_fg_bg_attr(ansi_text):  # pylint: disable=too-many-branches,too-many-statements
     fg, bg, attr = -1, -1, 0
@@ -38,66 +113,7 @@ def text_with_fg_bg_attr(ansi_text):  # pylint: disable=too-many-branches,too-ma
                 continue
             attr_args = match.group(1)
 
-            # Convert arguments to attributes/colors
-            for x256fg, x256bg, arg in codesplit_re.findall(attr_args + ';'):
-                # first handle xterm256 codes
-                try:
-                    if x256fg:                    # xterm256 foreground
-                        fg = int(x256fg)
-                        continue
-                    elif x256bg:                  # xterm256 background
-                        bg = int(x256bg)
-                        continue
-                    elif arg:                     # usual ansi code
-                        n = int(arg)
-                    else:                         # empty code means reset
-                        n = 0
-                except ValueError:
-                    continue
-
-                if n == 0:                        # reset colors and attributes
-                    fg, bg, attr = -1, -1, 0
-
-                elif n == 1:                      # enable attribute
-                    attr |= color.bold
-                elif n == 4:
-                    attr |= color.underline
-                elif n == 5:
-                    attr |= color.blink
-                elif n == 7:
-                    attr |= color.reverse
-                elif n == 8:
-                    attr |= color.invisible
-
-                elif n == 22:                     # disable attribute
-                    attr &= not color.bold
-                elif n == 24:
-                    attr &= not color.underline
-                elif n == 25:
-                    attr &= not color.blink
-                elif n == 27:
-                    attr &= not color.reverse
-                elif n == 28:
-                    attr &= not color.invisible
-
-                elif n >= 30 and n <= 37:         # 8 ansi foreground and background colors
-                    fg = n - 30
-                elif n == 39:
-                    fg = -1
-                elif n >= 40 and n <= 47:
-                    bg = n - 40
-                elif n == 49:
-                    bg = -1
-
-                # 8 aixterm high intensity colors (light but not bold)
-                elif n >= 90 and n <= 97:
-                    fg = n - 90 + 8
-                elif n == 99:
-                    fg = -1
-                elif n >= 100 and n <= 107:
-                    bg = n - 100 + 8
-                elif n == 109:
-                    bg = -1
+            (fg, bg, attr) = parse_ansi_code(map(int, attr_args.split(';')), fg, bg, attr)
 
             yield (fg, bg, attr)
 
