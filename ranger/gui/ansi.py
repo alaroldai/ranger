@@ -92,6 +92,8 @@ def parse_color(code):
 
 
 def parse_ansi_code(code, fg, bg, attr):
+  if not code:
+    return (fg, bg, attr)
   if code[0] == 38:
     fg = parse_color(code[1:])
   elif code[0] == 48:
@@ -113,7 +115,7 @@ def text_with_fg_bg_attr(ansi_text):  # pylint: disable=too-many-branches,too-ma
                 continue
             attr_args = match.group(1)
 
-            (fg, bg, attr) = parse_ansi_code(list(map(int, attr_args.split(';'))), fg, bg, attr)
+            (fg, bg, attr) = parse_ansi_code(list(map(int, filter(str.isnumeric, attr_args.split(';')))), fg, bg, attr)
 
             yield (fg, bg, attr)
 
