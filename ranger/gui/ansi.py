@@ -113,7 +113,7 @@ def text_with_fg_bg_attr(ansi_text):  # pylint: disable=too-many-branches,too-ma
                 continue
             attr_args = match.group(1)
 
-            (fg, bg, attr) = parse_ansi_code(map(int, attr_args.split(';')), fg, bg, attr)
+            (fg, bg, attr) = parse_ansi_code(list(map(int, attr_args.split(';'))), fg, bg, attr)
 
             yield (fg, bg, attr)
 
