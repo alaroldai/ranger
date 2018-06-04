@@ -87,7 +87,7 @@ def parse_color(code):
   elif code[0] == 2:
     return parse_rgb(code[1:])
   else:
-    print('unknown color colde {}'.format(code))
+    print('unknown color code {}'.format(code))
     return -1
 
 
@@ -115,7 +115,7 @@ def text_with_fg_bg_attr(ansi_text):  # pylint: disable=too-many-branches,too-ma
                 continue
             attr_args = match.group(1)
 
-            (fg, bg, attr) = parse_ansi_code(list(map(int, filter(str.isnumeric, attr_args.split(';')))), fg, bg, attr)
+            (fg, bg, attr) = parse_ansi_code([int(c) for c in attr_args.split(';') if all(character in '0123456789' for character in c)], fg, bg, attr)
 
             yield (fg, bg, attr)
 

@@ -20,21 +20,39 @@ import curses
 DEFAULT_FOREGROUND = curses.COLOR_WHITE
 DEFAULT_BACKGROUND = curses.COLOR_BLACK
 COLOR_PAIRS = {10: 0}
-COLORS = dict()
-NEXT_COLOR_INDEX = 0
-PREDEFINED_COLOR_COUNT = 24
 
+
+def withattr(**kwargs):
+  def decorator(f):
+    for (k, v) in kwargs.items():
+      setattr(f, k, v)
+    return f
+  return decorator
+
+
+@withattr(NextColorIndex=0)
+@withattr(Colors=None)
+@withattr(PredefinedColorCount=24)
 def get_color_id(r, g, b):
-  global NEXT_COLOR_INDEX
-  if (r, g, b) not in COLORS.keys():
-    if len(COLORS) + PREDEFINED_COLOR_COUNT >= curses.COLORS:
-      return default
-    colid = NEXT_COLOR_INDEX % (curses.COLORS - PREDEFINED_COLOR_COUNT) + PREDEFINED_COLOR_COUNT
-    (rc, gc, bc) = map(lambda c: int(1000 * (float(c) / 256.0)), (r, g, b))
-    curses.init_color(colid, rc, gc, bc)
-    COLORS[(r, g, b)] = colid
-    NEXT_COLOR_INDEX += 1
-  return COLORS[(r, g, b)]
+  if not get_color_id.Colors:
+    get_color_id.Colors = {
+        curses.color_content(color) : color
+        for color in (black, blue, cyan, green, magenta, red, white, yellow)
+    }
+
+  colors = get_color_id.Colors
+  predefined_color_count = get_color_id.PredefinedColorCount
+  (r, g, b) = (int(1000 * (float(c) / 256.0)) for c in (r, g, b))
+
+  if (r, g, b) not in colors.keys():
+    if len(colors) + predefined_color_count >= curses.COLORS or not curses.can_change_color():
+      return -1
+    colid = get_color_id.NextColorIndex % (curses.COLORS - predefined_color_count) + predefined_color_count
+    curses.init_color(colid, r, g, b)
+    colors[(r, g, b)] = colid
+    get_color_id.NextColorIndex += 1
+  return colors[(r, g, b)]
+
 
 def get_color(fg, bg):
     """Returns the curses color pair for the given fg/bg combination."""
